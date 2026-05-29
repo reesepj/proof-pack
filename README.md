@@ -23,10 +23,13 @@ This is not a generic notes app. It is a proof desk.
 - Per-packet Markdown and JSON export
 - Whole-workspace JSON export
 - JSON import with merge behavior
+- Defensive import normalization for malformed packet files
 - Versioned storage with corrupt-data quarantine
+- Browser sandbox smoke tests with Playwright
+- Desktop installer scaffold for macOS, Linux, and Windows 11 through Electron
 - Responsive dark operator UI
 - TypeScript, Vitest, Vite, React
-- GitHub Actions CI for install, test, typecheck, and production build
+- GitHub Actions CI for install, test, browser smoke, typecheck, and production build
 
 ## Use cases
 
@@ -62,9 +65,45 @@ npm run preview
 
 ```bash
 npm test
+npm run e2e
 npm run typecheck
 npm run build
 ```
+
+## Desktop app and installers
+
+Run the desktop shell in development:
+
+```bash
+npm run electron:dev
+```
+
+Build an unpacked desktop app:
+
+```bash
+npm run pack
+```
+
+Build Linux installers on Linux:
+
+```bash
+npm run dist:linux
+```
+
+Build Windows and macOS installers on native CI runners:
+
+```bash
+npm run dist:win
+npm run dist:mac
+```
+
+Release artifacts are configured in `.github/workflows/release.yml`. macOS and Windows releases should be signed before broad distribution.
+
+Research and platform details live in:
+
+- `docs/product-research.md`
+- `docs/desktop-distribution.md`
+- `docs/sandbox-qa.md`
 
 ## Data model
 
@@ -100,12 +139,13 @@ proof-pack:v1:corrupt
 
 The next valuable slices are:
 
-1. Project-level workspaces and client folders
-2. PDF export
-3. Evidence attachment manifest
-4. ReeseBrain export target
-5. Mission Control integration
-6. Public read-only packet links, only after auth and privacy design
+1. Professional export suite with print/PDF output
+2. Project-level workspaces and client folders
+3. Structured evidence manifest
+4. Durable storage upgrade beyond localStorage
+5. ReeseBrain export target
+6. Mission Control integration
+7. Public read-only packet links, only after auth and privacy design
 
 ## Privacy posture
 
