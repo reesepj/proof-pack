@@ -14,7 +14,7 @@ import {
   type TemplateKey,
   typeOptions
 } from "./lib/proof";
-import { exportStore, loadStore, saveStore } from "./lib/storage";
+import { exportStore, loadStore, normalizeStore, saveStore } from "./lib/storage";
 
 const templateKeys = Object.keys(templates) as TemplateKey[];
 
@@ -130,14 +130,26 @@ export function App() {
   };
 
   const copyMarkdown = async () => {
-    await navigator.clipboard.writeText(markdown);
-    setNotice("Markdown copied");
+    if (!navigator.clipboard?.writeText) {
+      setNotice("Copy unavailable");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setNotice("Markdown copied");
+    } catch {
+      setNotice("Copy failed");
+    }
   };
 
   const importFile = async (input: File) => {
     const raw = await input.text();
     const parsed = JSON.parse(raw) as unknown;
     const imported = loadImported(parsed);
+    if (!imported.length) {
+      setNotice("No valid packets found");
+      return;
+    }
     setStore((current) => ({ version: 1, packets: mergePackets(current.packets, imported) }));
     setNotice(`Imported ${imported.length} packet${imported.length === 1 ? "" : "s"}`);
   };
@@ -234,7 +246,7 @@ export function App() {
             <h3>Quality audit</h3>
             {audit.findings.length ? (
               <ul className="findings">
-                {audit.findings.map((item) => <li key={`${item.field}-${item.message}`} data-severity={item.severity}>{item.message}</li>)}
+                {audit.findings.map((item) => <li key={`${item.field}-${item.message}`} data-severity={item.severity}><strong>{item.severity}</strong>{item.message}</li>)}
               </ul>
             ) : <p className="ok">This packet is ready to send.</p>}
           </section>
@@ -253,7 +265,7 @@ export function App() {
         </aside>
       </section>
 
-      <div className={`toast ${notice ? "show" : ""}`}>{notice}</div>
+      <div className={`toast ${notice ? "show" : ""}`} role="status" aria-live="polite">{notice}</div>
     </main>
   );
 }
@@ -267,26 +279,6 @@ function mergePackets(current: ProofPacket[], imported: ProofPacket[]) {
 function loadImported(value: unknown): ProofPacket[] {
   if (!value || typeof value !== "object") return [];
   const record = value as Record<string, unknown>;
-  const list = Array.isArray(record.packets) ? record.packets : [value];
-  return list.map((item) => {
-    const packet = item as Partial<ProofPacket>;
-    return touch({
-      id: typeof packet.id === "string" ? packet.id : `proof_${crypto.randomUUID()}`,
-      title: packet.title || "Imported proof packet",
-      client: packet.client || "",
-      owner: packet.owner || "Reese + Vespera",
-      type: packet.type || "Client Ops",
-      status: packet.status || "draft",
-      date: packet.date || new Date().toISOString().slice(0, 10),
-      tags: Array.isArray(packet.tags) ? packet.tags : [],
-      problem: packet.problem || "",
-      work: packet.work || "",
-      evidence: Array.isArray(packet.evidence) ? packet.evidence : [],
-      impact: packet.impact || "",
-      risks: Array.isArray(packet.risks) ? packet.risks : [],
-      nextAsk: packet.nextAsk || "",
-      createdAt: packet.createdAt || new Date().toISOString(),
-      updatedAt: packet.updatedAt || new Date().toISOString()
-    });
-  });
+  const input = Array.isArray(record.packets) ? value : { version: 1, packets: [value] };
+  return normalizeStore(input).packets.map(touch);
 }

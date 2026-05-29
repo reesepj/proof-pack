@@ -279,12 +279,22 @@ input:focus, select:focus, textarea:focus {
 }
 
 .findings li {
+  display: grid;
+  gap: 4px;
   padding: 10px 11px;
   border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--muted);
   background: rgba(255,255,255,.025);
   font-size: 13px;
+}
+
+.findings strong {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
 }
 
 .findings li[data-severity="high"] { border-color: rgba(226, 107, 87, .52); color: #ffd8d1; }

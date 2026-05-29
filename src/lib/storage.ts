@@ -7,13 +7,22 @@ const CORRUPT_KEY = "proof-pack:v1:corrupt";
 const fallback: ProofStore = { version: 1, packets: [] };
 
 function safeStorage(): Storage | null {
-  if (typeof localStorage === "undefined") return null;
-  return localStorage;
+  try {
+    if (typeof localStorage === "undefined") return null;
+    return localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function hasPacketSignal(record: Record<string, unknown>): boolean {
+  return ["title", "client", "problem", "work", "evidence", "impact", "nextAsk"].some((key) => key in record);
 }
 
 function packetFromUnknown(value: unknown): ProofPacket | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
+  if (!hasPacketSignal(record)) return null;
   return createPacket({
     id: typeof record.id === "string" ? record.id : undefined,
     title: typeof record.title === "string" ? record.title : undefined,
@@ -45,20 +54,33 @@ export function normalizeStore(value: unknown): ProofStore {
 
 export function loadStore(storage: Storage | null = safeStorage()): ProofStore {
   if (!storage) return fallback;
-  const raw = storage.getItem(STORE_KEY);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(STORE_KEY);
+  } catch {
+    return fallback;
+  }
   if (!raw) return fallback;
   try {
     return normalizeStore(JSON.parse(raw));
   } catch {
-    storage.setItem(CORRUPT_KEY, raw);
-    storage.removeItem(STORE_KEY);
+    try {
+      storage.setItem(CORRUPT_KEY, raw);
+      storage.removeItem(STORE_KEY);
+    } catch {
+      return fallback;
+    }
     return fallback;
   }
 }
 
 export function saveStore(store: ProofStore, storage: Storage | null = safeStorage()): void {
   if (!storage) return;
-  storage.setItem(STORE_KEY, exportStore(store));
+  try {
+    storage.setItem(STORE_KEY, exportStore(store));
+  } catch {
+    return;
+  }
 }
 
 export function exportStore(store: ProofStore): string {

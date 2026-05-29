@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { createPacket } from "./proof";
-import { loadStore, saveStore, exportStore } from "./storage";
+import { exportStore, loadStore, normalizeStore, saveStore } from "./storage";
 
 describe("versioned local storage", () => {
   beforeEach(() => {
@@ -32,5 +32,13 @@ describe("versioned local storage", () => {
 
     expect(json).toContain('"version": 1');
     expect(json).toContain('"client": "Acropolis Ops"');
+  });
+
+  it("rejects empty and malformed imported packet objects", () => {
+    const normalized = normalizeStore({ packets: [{}, { title: { nested: true }, evidence: ["valid", 12] }] });
+
+    expect(normalized.packets).toHaveLength(1);
+    expect(normalized.packets[0]?.title).toBe("Untitled proof packet");
+    expect(normalized.packets[0]?.evidence).toEqual(["valid"]);
   });
 });
